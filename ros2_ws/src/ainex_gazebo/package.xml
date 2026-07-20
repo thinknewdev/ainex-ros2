@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ainex_gazebo</name>
+  <version>0.1.0</version>
+  <description>
+    Gazebo Classic 11 simulation of the Hiwonder AiNex humanoid, ported from the
+    ROS1 ainex_simulations packages (ainex_description + ainex_gazebo) to
+    ROS2 Humble with gazebo_ros2_control.
+  </description>
+  <maintainer email="flashfreakmx@gmail.com">thinknewdev</maintainer>
+  <license>Proprietary (vendor URDF/meshes: Hiwonder)</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>gazebo_ros2_control</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>position_controllers</exec_depend>
+  <exec_depend>web_video_server</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

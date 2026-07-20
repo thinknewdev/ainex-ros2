@@ -1,0 +1,5 @@
+# Read current positions of the given bus servo ids
+uint16[] ids
+---
+bool success
+BusServoPosition[] positions

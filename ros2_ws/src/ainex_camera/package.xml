@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>ainex_camera</name>
+  <version>0.1.0</version>
+  <description>
+    ROS2 Humble camera bringup for the Hiwonder AiNex head camera.
+    Ports the ROS1 ainex_peripherals usb_cam_with_calib.launch +
+    web_video_server stack: v4l2_camera (640x480 YUYV, /dev/video0)
+    -> image_proc rectify -> /camera/image_rect_color, plus
+    web_video_server on :8080 with the legacy /snapshot endpoint.
+  </description>
+  <maintainer email="flashfreakmx@gmail.com">thinknewdev</maintainer>
+  <license>Apache-2.0</license>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>v4l2_camera</exec_depend>
+  <exec_depend>image_proc</exec_depend>
+  <exec_depend>web_video_server</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

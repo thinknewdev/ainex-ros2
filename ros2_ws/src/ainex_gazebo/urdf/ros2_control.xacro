@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!--
+  ROS2 port of the vendor transmissions.xacro (ROS1 transmission tags ->
+  ros2_control <ros2_control> hardware block using gazebo_ros2_control/GazeboSystem).
+
+  The ROS1 stack used effort_controllers/JointPositionController per joint
+  (PID in ros_control). Here we expose a "position" command interface instead:
+  gazebo_ros2_control implements it with Gazebo Classic joint position control,
+  so no per-joint PID tuning is required and a single
+  position_controllers/JointGroupPositionController drives all joints.
+
+  Initial values on the four arm joints replicate the ROS1 spawn_model
+  "-J l_sho_roll -1.403 -J l_el_yaw -1.226 -J r_sho_roll 1.403 -J r_el_yaw 1.226"
+  arguments (ROS2 spawn_entity.py has no -J equivalent).
+-->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:macro name="ainex_joint" params="name initial:=0.0">
+    <joint name="${name}">
+      <command_interface name="position">
+        <param name="min">-2.09</param>
+        <param name="max">2.09</param>
+      </command_interface>
+      <state_interface name="position">
+        <param name="initial_value">${initial}</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </xacro:macro>
+
+  <ros2_control name="AinexGazeboSystem" type="system">
+    <hardware>
+      <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+    </hardware>
+
+    <!-- legs -->
+    <xacro:ainex_joint name="r_hip_yaw"/>
+    <xacro:ainex_joint name="r_hip_roll"/>
+    <xacro:ainex_joint name="r_hip_pitch"/>
+    <xacro:ainex_joint name="r_knee"/>
+    <xacro:ainex_joint name="r_ank_pitch"/>
+    <xacro:ainex_joint name="r_ank_roll"/>
+    <xacro:ainex_joint name="l_hip_yaw"/>
+    <xacro:ainex_joint name="l_hip_roll"/>
+    <xacro:ainex_joint name="l_hip_pitch"/>
+    <xacro:ainex_joint name="l_knee"/>
+    <xacro:ainex_joint name="l_ank_pitch"/>
+    <xacro:ainex_joint name="l_ank_roll"/>
+
+    <!-- arms -->
+    <xacro:ainex_joint name="r_sho_pitch"/>
+    <xacro:ainex_joint name="l_sho_pitch"/>
+    <xacro:ainex_joint name="l_sho_roll" initial="-1.403"/>
+    <xacro:ainex_joint name="r_sho_roll" initial="1.403"/>
+    <xacro:ainex_joint name="l_el_pitch"/>
+    <xacro:ainex_joint name="r_el_pitch"/>
+    <xacro:ainex_joint name="l_el_yaw" initial="-1.226"/>
+    <xacro:ainex_joint name="r_el_yaw" initial="1.226"/>
+    <xacro:ainex_joint name="l_gripper"/>
+    <xacro:ainex_joint name="r_gripper"/>
+
+    <!-- head -->
+    <xacro:ainex_joint name="head_pan"/>
+    <xacro:ainex_joint name="head_tilt"/>
+  </ros2_control>
+</robot>

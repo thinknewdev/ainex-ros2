@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ainex_bridge</name>
+  <version>0.1.0</version>
+  <description>ROS2 facade exposing the AiNex vendor topic/service surface, forwarding to the motiond Unix-socket daemon</description>
+  <maintainer email="flashfreakmx@gmail.com">Adam Coburn</maintainer>
+  <license>Proprietary</license>
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>ainex_interfaces</depend>
+  <depend>ainex_bridge_interfaces</depend>
+  <exec_depend>ros2launch</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

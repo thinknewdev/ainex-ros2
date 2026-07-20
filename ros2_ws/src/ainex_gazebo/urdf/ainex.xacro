@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Top-level robot description for the AiNex Gazebo Classic simulation (ROS2 Humble). -->
+<robot name="ainex" xmlns:xacro="http://ros.org/wiki/xacro">
+    <xacro:include filename="$(find ainex_gazebo)/urdf/ainex.urdf.xacro"/>
+    <xacro:include filename="$(find ainex_gazebo)/urdf/gazebo.xacro" />
+</robot>
