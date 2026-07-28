@@ -1,0 +1,14 @@
+[Unit]
+Description=AiNex ROS2 motion bridge (ainex_bridge facade -> motiond shared socket)
+After=docker.service motiond.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker exec ainex_ros2 bash -lc 'pkill -9 -f ainex_bridge; sleep 1; true'
+ExecStart=/usr/bin/docker exec ainex_ros2 bash -lc 'source /opt/ros/humble/setup.bash; source /ws/install/setup.bash; exec ros2 run ainex_bridge bridge --ros-args -p socket_path:=/share/motiond.sock'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
