@@ -1,7 +1,13 @@
 # AiNex ROS2 Port
 
-- `ros1_src/` — vendor's complete ROS1 (Noetic) workspace, extracted from the SD backup image. Read-only reference.
-- `ros2_ws/` — the ROS2 (Humble) workspace being built up package by package.
+ROS 2 (Humble) port of the Hiwonder AiNex humanoid: message/service interfaces, a ROS 2
+bridge/facade, camera, a Gazebo sim, and a standalone motion daemon (`motiond`) with ROS-free
+client shims so existing mission code runs against ROS 2 unchanged.
+
+- `ros2_ws/` — the ROS2 (Humble) workspace: interfaces, bridge, camera, gazebo.
+- `motiond/` — standalone motion daemon (walking engine + IK + servo bus + IMU + servo temps).
+- `shims/` — ROS-free client + drop-in MotionManager/GaitManager/ImuFeed (see MIGRATION.md).
+- `tests/` — end-to-end test scripts.
 
 Build (desktop, amd64 iteration): `docker run --rm -v $PWD/ros2_ws:/ws -w /ws ros:humble bash -c "source /opt/ros/humble/setup.bash && colcon build"`
 
