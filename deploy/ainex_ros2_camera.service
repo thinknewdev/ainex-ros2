@@ -1,0 +1,26 @@
+# systemd unit that runs the ROS2 head camera, replacing the ROS1
+# `roslaunch ainex_bringup bringup.launch` camera pipeline.
+#
+# Install (host):
+#   sudo cp deploy/ainex_ros2_camera.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ainex_ros2_camera
+#
+# Assumes the camera-runtime container is named `ainex_ros2` (see
+# deploy/Dockerfile.camera) and the ainex_camera package is already built in
+# the mounted workspace at /ws.
+
+[Unit]
+Description=AiNex ROS2 head camera (v4l2_camera + rectify + web_video_server, replaces ROS1 usb_cam bringup)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker exec ainex_ros2 bash -lc 'pkill -9 -f "ros2 launch ainex_camera"; pkill -9 -f v4l2_camera_node; pkill -9 -f web_video_server; pkill -9 -f rectify_node; sleep 1; true'
+ExecStart=/usr/bin/docker exec ainex_ros2 bash -lc 'source /opt/ros/humble/setup.bash; source /ws/install/setup.bash; exec ros2 launch ainex_camera camera.launch.py'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

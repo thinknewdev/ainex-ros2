@@ -1,0 +1,30 @@
+# ROS2 (Humble) camera-runtime container for the AiNex head camera.
+#
+# Provides the three ROS2 packages that ainex_camera depends on (v4l2_camera,
+# image_proc, web_video_server), which are not in the base ros:humble image.
+# The ainex_camera package itself is bind-mounted from the workspace (see below)
+# and built with colcon on first run, so this image only carries the deps.
+#
+# Build:
+#   docker build -f deploy/Dockerfile.camera -t ainex_ros2:cam .
+#
+# Run (host networking + camera device access are both required):
+#   docker run -d --name ainex_ros2 --privileged --net host --restart unless-stopped \
+#       -v <host_shared_src>:/share \
+#       -v <host_ros2_ws>:/ws \
+#       ainex_ros2:cam sleep infinity
+#
+#   # one-time build of the camera package inside the container:
+#   docker exec ainex_ros2 bash -lc \
+#       'source /opt/ros/humble/setup.bash && cd /ws && colcon build --packages-select ainex_camera'
+#
+# --privileged (or an explicit --device /dev/video0) is what lets the container
+# open the head camera; plain host networking is not enough on its own.
+
+FROM ros:humble
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ros-humble-v4l2-camera \
+        ros-humble-image-proc \
+        ros-humble-web-video-server \
+    && rm -rf /var/lib/apt/lists/*
