@@ -11,7 +11,7 @@ Where the IMU actually lives (traced through ros1_src):
     /ros_robot_controller/imu_raw (accel * 9.80665 -> m/s^2,
     gyro deg -> rad/s).
   * ainex_peripherals/launch/imu.launch ran imu_calib/apply_calib over
-    imu_raw to produce /imu_corrected -- the topic ball_throw.py subscribes.
+    imu_raw to produce /imu_corrected -- the topic the mission code subscribes.
 
 It is NOT an I2C/sysfs device, so there is no direct ROS-free read path from
 a second process: the daemon owns the board serial port.  Therefore this
@@ -23,13 +23,13 @@ module needs ONE daemon protocol addition (documented in MIGRATION.md):
   imu_calib.yaml correction applied daemon-side (i.e. serve what
   /imu_corrected carried, not raw board counts).
 
-ImuFeed matches ball_throw.py's usage semantics:
-  ball_throw                      here
+ImuFeed matches the mission code's usage semantics:
+  the mission code                      here
   ----------                      ----
   _accel  (list [ax, ay, az])     feed.accel
   _yaw['deg'] (integrated yaw     feed.gyro_deg          (read)
      about the UP axis, Y)        feed.gyro_deg = 0.0    (reset, like
-                                    ball_throw does before a measured turn)
+                                    the mission code does before a measured turn)
   subscriber callback rate        background poll thread (default 50 Hz)
 
 Python 3.8 compatible.
@@ -53,10 +53,10 @@ class ImuFeed:
 
     .accel     latest [ax, ay, az] in m/s^2 (upright gravity ~ +9.8 on Y;
                starts at the upright default so tilt/fall math is sane
-               before the first sample, same as ball_throw's initial _accel).
+               before the first sample, same as the mission code's initial _accel).
     .gyro      latest [gx, gy, gz] in rad/s.
     .gyro_deg  integrated rotation (degrees) about the UP axis (Y), exactly
-               like ball_throw's _yaw['deg']: deg += degrees(gyro_y) * dt.
+               like the mission code's _yaw['deg']: deg += degrees(gyro_y) * dt.
                Assignable: `feed.gyro_deg = 0.0` re-zeroes before a turn.
     .age       seconds since the last successful sample (inf if never).
     .ok        True when a sample landed within the last second.
@@ -67,7 +67,7 @@ class ImuFeed:
         self._period = 1.0 / float(poll_hz)
         self._up = _UP_AXIS_INDEX[up_axis.lower()]
         self._lock = threading.Lock()
-        self.accel = [0.0, 9.8, 0.0]          # upright default, like ball_throw
+        self.accel = [0.0, 9.8, 0.0]          # upright default, like the mission code
         self.gyro = [0.0, 0.0, 0.0]
         self._yaw_deg = 0.0
         self._yaw_t = None                    # last integration timestamp
@@ -89,7 +89,7 @@ class ImuFeed:
     def stop(self):
         self._run = False
 
-    # -- ball_throw-compatible surface ------------------------------------
+    # -- the mission code-compatible surface ------------------------------------
     @property
     def gyro_deg(self):
         with self._lock:
@@ -112,7 +112,7 @@ class ImuFeed:
         return self.age < 1.0
 
     def wait_ready(self, timeout=2.0):
-        """Block until the first sample arrives (ball_throw slept 0.3s and
+        """Block until the first sample arrives (the mission code slept 0.3s and
         hoped; this actually checks). Returns True if data is flowing."""
         t0 = time.time()
         while time.time() - t0 < timeout:
@@ -121,9 +121,9 @@ class ImuFeed:
             time.sleep(0.02)
         return False
 
-    # -- convenience mirrors of ball_throw's gravity math -----------------
+    # -- convenience mirrors of the mission code's gravity math -----------------
     def tilt_deg(self):
-        """Body angle from vertical, from the gravity vector (ball_throw's tilt_deg)."""
+        """Body angle from vertical, from the gravity vector (the mission code's tilt_deg)."""
         ax, ay, az = self.accel
         g = math.sqrt(ax * ax + ay * ay + az * az) or 1.0
         up = self.accel[self._up]

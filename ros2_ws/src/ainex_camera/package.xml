@@ -10,7 +10,7 @@
     -> image_proc rectify -> /camera/image_rect_color, plus
     web_video_server on :8080 with the legacy /snapshot endpoint.
   </description>
-  <maintainer email="flashfreakmx@gmail.com">thinknewdev</maintainer>
+  <maintainer email="ainex-ros2@users.noreply.github.com">AiNex ROS2 Port Maintainers</maintainer>
   <license>Apache-2.0</license>
 
   <exec_depend>launch</exec_depend>

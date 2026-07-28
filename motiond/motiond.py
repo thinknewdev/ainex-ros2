@@ -155,6 +155,21 @@ class ServoBus:
         with self._lock:
             return self.board.get_battery()
 
+    def ready_signal(self):
+        # type: () -> None
+        """Boot heartbeat: one green LED blink + a short buzzer chirp, so the
+        robot signals 'motion daemon owns the bus and is ready' the way the
+        vendor bringup used to beep on start."""
+        with self._lock:
+            try:
+                self.board.set_rgb([[1, 0, 255, 0], [2, 0, 255, 0]])  # both LEDs SOLID green
+            except Exception:
+                pass
+            try:
+                self.board.set_buzzer(1500, 0.12, 0.05, 2)  # two short chirps
+            except Exception:
+                pass
+
     def get_imu(self):
         # type: () -> Optional[tuple]
         """Newest raw IMU report, or None if no fresh frame has arrived.
@@ -548,6 +563,12 @@ class MotionDaemon:
         self.max_stop_move = 0.24
         self.speed = 0.2 / math.radians(60)  # servo max speed 0.2s/60deg
         time.sleep(0.2)
+        if not self.sim:
+            try:
+                self.bus.ready_signal()
+                log('ready signal sent (beep + green LED)')
+            except Exception as e:
+                log('ready signal failed:', e)
         log('init finish')
 
     # ------------------------------------------------------------------

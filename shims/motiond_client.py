@@ -99,15 +99,18 @@ class MotiondClient:
         line, self._buf = self._buf.split(b'\n', 1)
         return line
 
-    def _request(self, obj):
+    def _request(self, obj, timeout=None, retries=None):
         """Send one op, return the decoded reply dict (reply['ok'] is True)."""
         payload = (json.dumps(obj) + '\n').encode('utf-8')
         last_err = None
+        _to = self.timeout if timeout is None else float(timeout)
+        _rt = self.retries if retries is None else int(retries)
         with self._lock:
-            for _attempt in range(self.retries + 1):
+            for _attempt in range(_rt + 1):
                 try:
                     if self._sock is None:
                         self._connect()
+                    self._sock.settimeout(_to)
                     self._sock.sendall(payload)
                     line = self._read_line()
                 except (OSError, socket.timeout) as e:
@@ -121,7 +124,7 @@ class MotiondClient:
                     raise MotiondError('motiond sent unparseable reply for %r: %s'
                                        % (obj.get('op'), e))
                 if not isinstance(resp, dict) or not resp.get('ok'):
-                    err = resp.get('error') if isinstance(resp, dict) else resp
+                    err = (resp.get('err') or resp.get('error')) if isinstance(resp, dict) else resp
                     raise MotiondError('motiond refused %r: %s' % (obj.get('op'), err))
                 return resp
         raise MotiondError('motiond unreachable at %s (%s: %s)'
@@ -164,9 +167,11 @@ class MotiondClient:
         resp = self._request({'op': 'get_servos', 'ids': [int(i) for i in ids]})
         return [[int(i), int(p)] for i, p in resp['positions']]
 
-    def run_action(self, name):
-        """Run a .d6a action group by name (e.g. 'stand', 'recline_to_stand')."""
-        self._request({'op': 'run_action', 'name': str(name)})
+    def run_action(self, name, timeout=30.0):
+        """Run a .d6a action group by name. Blocks on the daemon for the whole
+        group; use a long timeout and NEVER retry (resending mid-play makes the
+        daemon refuse it as 'already running')."""
+        self._request({'op': 'run_action', 'name': str(name)}, timeout=timeout, retries=0)
 
     def state(self):
         """Walking-engine state -> {'walking': bool, 'enabled': bool, 'stopped': bool}."""

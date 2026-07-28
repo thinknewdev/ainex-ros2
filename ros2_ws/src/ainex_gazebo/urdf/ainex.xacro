@@ -3,4 +3,14 @@
 <robot name="ainex" xmlns:xacro="http://ros.org/wiki/xacro">
     <xacro:include filename="$(find ainex_gazebo)/urdf/ainex.urdf.xacro"/>
     <xacro:include filename="$(find ainex_gazebo)/urdf/gazebo.xacro" />
+
+    <!-- VISUALIZATION PIN: fix the body to the world at standing height so the twin
+         shows a standing robot (no balance controller in sim). All servo joints
+         remain free, so driving them still animates the robot. -->
+    <link name="world"/>
+    <joint name="world_to_base" type="fixed">
+        <parent link="world"/>
+        <child link="base_link"/>
+        <origin xyz="0 0 0.33" rpy="0 0 0"/>
+    </joint>
 </robot>

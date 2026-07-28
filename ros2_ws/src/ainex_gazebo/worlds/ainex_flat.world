@@ -29,7 +29,7 @@
          above robot head height, looking back at the origin. -->
     <model name="sim_camera">
       <static>true</static>
-      <pose>1.5 0 0.35 0 0.05 3.14159</pose>
+      <pose>1.15 0 0.55 0 0.42 3.14159</pose>
       <link name="sim_camera_link">
         <visual name="camera_body">
           <geometry>

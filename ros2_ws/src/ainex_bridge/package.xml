@@ -3,7 +3,7 @@
   <name>ainex_bridge</name>
   <version>0.1.0</version>
   <description>ROS2 facade exposing the AiNex vendor topic/service surface, forwarding to the motiond Unix-socket daemon</description>
-  <maintainer email="flashfreakmx@gmail.com">Adam Coburn</maintainer>
+  <maintainer email="ainex-ros2@users.noreply.github.com">AiNex ROS2 Port Maintainers</maintainer>
   <license>Proprietary</license>
   <depend>rclpy</depend>
   <depend>std_msgs</depend>

@@ -15,8 +15,8 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Adam Coburn',
-    maintainer_email='flashfreakmx@gmail.com',
+    maintainer='AiNex ROS2 Port Maintainers',
+    maintainer_email='ainex-ros2@users.noreply.github.com',
     description='ROS2 facade bridging the AiNex vendor surface to motiond',
     license='Proprietary',
     entry_points={

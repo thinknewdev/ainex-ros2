@@ -18,8 +18,8 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='thinknewdev',
-    maintainer_email='flashfreakmx@gmail.com',
+    maintainer='AiNex ROS2 Port Maintainers',
+    maintainer_email='ainex-ros2@users.noreply.github.com',
     description='ROS2 Humble camera bringup for the Hiwonder AiNex head camera.',
     license='Apache-2.0',
     entry_points={

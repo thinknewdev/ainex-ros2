@@ -2,7 +2,7 @@
 # encoding: utf-8
 """compat -- drop-in replacements for the mission code's ROS touchpoints.
 
-Backed by motiond (see motiond_client.py) instead of rospy, so ball_throw.py /
+Backed by motiond (see motiond_client.py) instead of rospy, so the mission code /
 vision_service.py run identically under ROS1 or ROS2 hosts: the daemon owns the
 robot, the mission code just talks JSON over /tmp/motiond.sock.
 
@@ -28,7 +28,7 @@ except ImportError:                      # not imported as a package
 __all__ = ['MotionManager', 'GaitManagerCompat', 'app_walk', 'app_cmd',
            'get_client', 'MotiondError']
 
-# Defaults matching ball_throw.py's app pathway constants
+# Defaults matching the mission code's app pathway constants
 APP_SPEED = 3        # the joystick's proven tier
 APP_HEIGHT = 0.025   # body height = walking init_z_offset baseline
 
@@ -318,11 +318,11 @@ class GaitManagerCompat:
 
 
 # ======================================================================
-# app pathway helpers -- mirror ball_throw.py's app_cmd / app_walk
+# app pathway helpers -- mirror the mission code's app_cmd / app_walk
 # ======================================================================
 def app_cmd(c, client=None):
     """Was: rospy.ServiceProxy('/walking/command', SetWalkingCommand)(c).
-    Same never-raise contract as ball_throw's helper (prints on failure)."""
+    Same never-raise contract as the mission code's helper (prints on failure)."""
     try:
         (client or get_client()).command(c)
     except Exception as e:
@@ -336,7 +336,7 @@ def app_walk(x, angle, y=0.0, speed=APP_SPEED, height=APP_HEIGHT, client=None):
     Raises MotiondError on failure -- same as the original, where a dead
     publisher raised out of app_walk (callers wrap it in try/except).
     NOTE: the original also POSTed a /hint yaw to the vision service; that is
-    HTTP, not ROS, so it stays in ball_throw.py (see MIGRATION.md).
+    HTTP, not ROS, so it stays in the mission code (see MIGRATION.md).
     """
     (client or get_client()).app_param(speed=speed, height=height,
                                        x=float(x), y=float(y), angle=float(angle))

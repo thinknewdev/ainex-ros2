@@ -3,7 +3,7 @@
   <name>ainex_bridge_interfaces</name>
   <version>0.1.0</version>
   <description>Bus-servo message/service interfaces for the AiNex ROS2 bridge (mirrors ROS1 ros_robot_controller msgs)</description>
-  <maintainer email="flashfreakmx@gmail.com">Adam Coburn</maintainer>
+  <maintainer email="ainex-ros2@users.noreply.github.com">AiNex ROS2 Port Maintainers</maintainer>
   <license>Proprietary</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>

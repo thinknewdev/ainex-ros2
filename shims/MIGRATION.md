@@ -1,4 +1,4 @@
-# Migration plan: ball_throw.py & vision_service.py off rospy, onto motiond
+# Migration plan: the mission code & vision_service.py off rospy, onto motiond
 
 Shim layer in this directory:
 
@@ -36,7 +36,7 @@ Required daemon-side semantics (to serve what `/imu_corrected` carried):
 
 * `accel` in **m/s²**: raw board value × 9.80665
   (`ros_robot_controller_node.py::pub_imu_data`, `gravity = 9.80665`).
-  Upright gravity lands on **+Y ≈ +9.8** — all of ball_throw's fall/tilt math
+  Upright gravity lands on **+Y ≈ +9.8** — all of the mission code's fall/tilt math
   assumes this axis convention.
 * `gyro` in **rad/s**: `math.radians(raw)` per axis.
 * Apply the `imu_calib` scale/bias correction from
@@ -62,7 +62,7 @@ added and the compat shim updated to poll it).
 {"op":"servo_temp","ids":[1,2,...]} -> {"ok":true,"temps":[[1,52],[2,49]]}   (°C)
 ```
 
-`ball_throw.servo_temps_ok()` reads servo temperatures via the
+`the mission code.servo_temps_ok()` reads servo temperatures via the
 `/ros_robot_controller/bus_servo/get_state` service (`get_temperature=1`) to
 refuse runs on cooked ankles and to set `SPEED_CAP`. There is no daemon op
 for it. Its `except` branch already prints "temp check unavailable —
@@ -71,7 +71,7 @@ lost until this op is added. Recommended.
 
 ---
 
-## ball_throw.py — line-by-line
+## the mission code — line-by-line
 
 Legend: `compat` = `from compat import ...`, `client` = the shared
 `MotiondClient` behind it.
@@ -96,14 +96,14 @@ Legend: `compat` = `from compat import ...`, `client` = the shared
 | 454–458 | `gait.stop() / gait.disable() / gait.enable()` in `recover_if_fallen` (and every other `gait.*` call: L790, L1029, L1031, L1139, L1889, L1914, L1938, L1962, L1967, L1989, L2002, L2011, L2018) | **unchanged** — mapped to `command('stop'/'disable'/'enable')` |
 | 520, 1666–1720, 1874–1906 | `mm.set_servos_position(dur, [[id,pos],...])`, `mm.run_action(name)` | **unchanged** — compat `MotionManager` keeps the exact vendor varargs signature, backed by `servos` / `run_action` ops |
 | 1731–1758 | `servo_temps_ok()` imports `ros_robot_controller.srv/.msg`, `rospy.ServiceProxy('/ros_robot_controller/bus_servo/get_state')` | replace body with the optional `servo_temp` daemon op when added; until then let the existing `except` fall through ("temp check unavailable — proceeding"). Simplest interim: wrap the whole body in `try` and return `True` |
-| 1924 | `rospy.init_node('ball_throw', anonymous=True)` | delete |
+| 1924 | `rospy.init_node('the mission code', anonymous=True)` | delete |
 | 1925 | `rospy.Subscriber('/imu_corrected', Imu, _imu_cb, queue_size=1)` | `imu = ImuFeed()` (if not module-level) — requires the daemon `imu` op |
 | 1926 | `app_pub = rospy.Publisher('/app/set_walking_param', AppWalkingParam, queue_size=1)` | delete (compat `app_walk` handles it) |
 | 1927 | `gait = GaitManager()` | `gait = GaitManager()` — same line, now the compat class via the aliased import |
 | 1928 | `mm = MotionManager(ACTIONS)` | **unchanged** (compat accepts and ignores the path; the daemon resolves action names) |
 | 1929 | `time.sleep(0.3)  # let one IMU sample arrive` | `imu.wait_ready(2.0)` (actually verifies data is flowing) |
 
-Everything else in ball_throw.py (vision HTTP, narrator, banter, body-daemon
+Everything else in the mission code (vision HTTP, narrator, banter, body-daemon
 claim, MediaPipe) is ROS-free already and unchanged.
 
 ## vision_service.py — line-by-line

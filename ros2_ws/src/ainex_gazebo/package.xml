@@ -8,7 +8,7 @@
     ROS1 ainex_simulations packages (ainex_description + ainex_gazebo) to
     ROS2 Humble with gazebo_ros2_control.
   </description>
-  <maintainer email="flashfreakmx@gmail.com">thinknewdev</maintainer>
+  <maintainer email="ainex-ros2@users.noreply.github.com">AiNex ROS2 Port Maintainers</maintainer>
   <license>Proprietary (vendor URDF/meshes: Hiwonder)</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
