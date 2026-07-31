@@ -562,6 +562,25 @@ class MotionDaemon:
         self.servo_max_move = 0
         self.max_stop_move = 0.24
         self.speed = 0.2 / math.radians(60)  # servo max speed 0.2s/60deg
+
+        # ---- IMU ankle stabilizer (closed-loop overlay on the open-loop gait) ----
+        # The vendor engine plays a fixed trajectory and never consults the IMU, so
+        # disturbances accumulate until the robot tips.  This overlay reads the cached
+        # IMU attitude each walking cycle and adds a SMALL pulse trim on the ankle
+        # servos (rolls 1/2 same-direction, pitches 3/4 mirrored) so the soles track
+        # the MEASURED body tilt.  P-control with a hard cap and per-cycle slew limit;
+        # only ever applied inside the walking write path, so it cannot move a
+        # standing robot.  Configure/inspect live via socket op 'stab'.
+        # signs HW-measured 2026-07-31 (stab_signcal.py): +12 ticks on the roll pair
+        # -> roll -0.88deg (sign_roll=-1); +12/-12 on the pitch pair -> pitch +4.1deg
+        # (sign_pitch=+1). Static roll authority is low (~0.07deg/tick, closed chain in
+        # double support) but the stance foot has far more authority mid-step.
+        self.stab = {'on': False, 'kp_roll': 1.2, 'kp_pitch': 1.2,
+                     'sign_roll': -1.0, 'sign_pitch': 1.0,
+                     'cap': 22.0, 'slew': 4.0,
+                     'base_roll': None, 'base_pitch': None}
+        self.stab_trim = {'roll': 0.0, 'pitch': 0.0}   # applied trim (pulse ticks)
+        self.stab_last = {}                            # telemetry for op 'stab'
         time.sleep(0.2)
         if not self.sim:
             try:
@@ -585,6 +604,53 @@ class MotionDaemon:
     # ------------------------------------------------------------------
     # Tick loop — faithful port of Controller.run() (real-robot branch)
     # ------------------------------------------------------------------
+    # ---- stabilizer helpers -------------------------------------------------
+    def _stab_attitude(self):
+        # type: () -> Optional[List[float]]
+        """(roll_deg, pitch_deg) from the cached IMU sample — same atan2 convention
+        as the web api, so baselines line up with /motion/status numbers."""
+        with self.imu_lock:
+            s = self.latest_imu
+        if s is None:
+            return None
+        ax, ay, az = s['accel']
+        return [math.degrees(math.atan2(ax, ay)), math.degrees(math.atan2(az, ay))]
+
+    def stab_capture_base(self):
+        # type: () -> Optional[List[float]]
+        """Capture the current attitude as the stabilizer's level reference.
+        Called on every walking 'start' (robot is standing then), so the target
+        is always 'the stance he just walked from', never an absolute zero —
+        the IMU has a mounting bias and his liked stand reads roll≈-9/pitch≈+11."""
+        att = self._stab_attitude()
+        if att is not None:
+            self.stab['base_roll'], self.stab['base_pitch'] = att
+            log('stab: baseline captured roll=%.1f pitch=%.1f' % (att[0], att[1]))
+        return att
+
+    def _stab_update(self):
+        # type: () -> None
+        """Per-walking-cycle trim update. Cheap: one cached-IMU read + arithmetic."""
+        st = self.stab
+        if not st['on'] or st['base_roll'] is None:
+            self.stab_trim['roll'] = 0.0
+            self.stab_trim['pitch'] = 0.0
+            return
+        att = self._stab_attitude()
+        if att is None:
+            return
+        err = {'roll': att[0] - st['base_roll'], 'pitch': att[1] - st['base_pitch']}
+        for axis in ('roll', 'pitch'):
+            target = -st['sign_' + axis] * st['kp_' + axis] * err[axis]
+            target = max(-st['cap'], min(st['cap'], target))
+            step = target - self.stab_trim[axis]
+            step = max(-st['slew'], min(st['slew'], step))   # no sudden jumps
+            self.stab_trim[axis] += step
+        self.stab_last = {'err_roll': round(err['roll'], 1),
+                          'err_pitch': round(err['pitch'], 1),
+                          'trim_roll': round(self.stab_trim['roll'], 1),
+                          'trim_pitch': round(self.stab_trim['pitch'], 1)}
+
     def run(self):
         # type: () -> None
         next_time = time.monotonic()
@@ -603,6 +669,9 @@ class MotionDaemon:
                         if joint_max_move >= self.max_stop_move:
                             self.stop = False
                             self.servo_max_move = 0
+                            self._stab_update()   # IMU ankle overlay (no-op when off)
+                            tr = int(round(self.stab_trim['roll']))
+                            tp = int(round(self.stab_trim['pitch']))
                             data = []
                             for joint_name in self.present_joint_state:
                                 if self.walking_param['arm_swing_gain'] != 0 or \
@@ -611,6 +680,12 @@ class MotionDaemon:
                                     goal_position = joint_state[joint_name].goal_position
                                     id_ = self.joint_id[joint_name]
                                     pulse = self.angle2pulse(id_, goal_position)
+                                    if id_ in (1, 2):      # ankle rolls: same-direction pair
+                                        pulse += tr        # (both higher = lean left, HW-verified)
+                                    elif id_ == 3:         # ankle pitches: mirrored pair
+                                        pulse += tp
+                                    elif id_ == 4:
+                                        pulse -= tp
                                     data.append([id_, pulse])
                                     self.present_joint_state[joint_name].present_position = goal_position
                                     if self.last_position is not None:
@@ -1280,8 +1355,26 @@ class SocketServer:
         d = self.daemon
         op = request.get('op')
         if op == 'command':
-            d.do_command(str(request.get('command')))
+            cmd = str(request.get('command'))
+            if cmd == 'start' and d.stab['on']:
+                # walking is about to begin from a standstill: re-reference the
+                # stabilizer to the CURRENT stance so it holds this attitude.
+                d.stab_capture_base()
+            d.do_command(cmd)
             return {'ok': True}
+        elif op == 'stab':
+            # configure/read the IMU ankle stabilizer; {'base': 'now'} captures
+            # the current attitude as the level reference. Empty request = read.
+            for k in ('kp_roll', 'kp_pitch', 'sign_roll', 'sign_pitch',
+                      'cap', 'slew', 'base_roll', 'base_pitch'):
+                if k in request and request[k] is not None:
+                    d.stab[k] = float(request[k])
+            if 'on' in request:
+                d.stab['on'] = bool(request['on'])
+            if request.get('base') == 'now':
+                d.stab_capture_base()
+            return {'ok': True, 'stab': d.stab,
+                    'trim': d.stab_trim, 'last': d.stab_last}
         elif op == 'app_param':
             d.app_param(int(request.get('speed', 3)),
                         float(request.get('height', 0.025)),
