@@ -581,6 +581,11 @@ class MotionDaemon:
                      'base_roll': None, 'base_pitch': None}
         self.stab_trim = {'roll': 0.0, 'pitch': 0.0}   # applied trim (pulse ticks)
         self.stab_last = {}                            # telemetry for op 'stab'
+        # Static per-servo pulse trims applied ONLY while walking (op 'walk_trim').
+        # Purpose: cancel per-leg mechanical zero errors the gait engine can't see —
+        # e.g. a toed-out right foot (r_hip_yaw id 12) that pivots him right on every
+        # right step. Keys are servo ids, values pulse ticks.
+        self.walk_trim = {12: 17}  # type: Dict[int, int]  # r_hip_yaw +17: cancels his per-right-step right-turn (HW-tuned 2026-07-31, ~1deg/tick)
         time.sleep(0.2)
         if not self.sim:
             try:
@@ -686,6 +691,7 @@ class MotionDaemon:
                                         pulse += tp
                                     elif id_ == 4:
                                         pulse -= tp
+                                    pulse += self.walk_trim.get(id_, 0)   # per-leg zero trims
                                     data.append([id_, pulse])
                                     self.present_joint_state[joint_name].present_position = goal_position
                                     if self.last_position is not None:
@@ -1375,6 +1381,13 @@ class SocketServer:
                 d.stab_capture_base()
             return {'ok': True, 'stab': d.stab,
                     'trim': d.stab_trim, 'last': d.stab_last}
+        elif op == 'walk_trim':
+            # static per-servo pulse trims, walking-only. {'set': {'12': 10}} replaces
+            # the whole dict (empty {} clears); no 'set' = read current.
+            if 'set' in request:
+                new = request['set'] or {}
+                d.walk_trim = {int(k): int(v) for k, v in new.items()}
+            return {'ok': True, 'walk_trim': {str(k): v for k, v in d.walk_trim.items()}}
         elif op == 'app_param':
             d.app_param(int(request.get('speed', 3)),
                         float(request.get('height', 0.025)),
